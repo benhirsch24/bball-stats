@@ -67,13 +67,5 @@ def game_logs_filter(tag):
             return True
     return False
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
     #content = urllib2.urlopen('http://www.basketball-reference.com/players/b/bryanko01.html').read()
-    with open('kobe.html') as f:
-        content = f.read()
-        soup = BeautifulSoup(content, 'html.parser')
-
-        page_content = soup.find(id='page_content')
-        game_logs = page_content.find(class_='clearfix').find(class_='menu').find_all(game_logs_filter)
-        if len(game_logs) > 0:
-            parseGameLogs(game_logs[0])
