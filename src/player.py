@@ -18,9 +18,10 @@ class Player:
         self.below      = 0
         self.total      = 0
 
-        player_name = player_page[:-5].split('/')[-1]
-        player_file = input_dir + player_name + '.html'
-        player_csv  = input_dir + player_name + '.csv'
+        self.player_name = player_page[:-5].split('/')[-1]
+        print 'Player_name = ' + self.player_name
+        player_file = input_dir + self.player_name + '.html'
+        player_csv  = input_dir + self.player_name + '.csv'
         html = None
         if not os.path.isfile(player_file):
             html = urllib2.urlopen(player_page).read()
@@ -55,8 +56,6 @@ class Player:
             for (season, (scores, score)) in self.seasons.iteritems():
                 f.write(str(season))
                 f.write(',')
-                print scores
-                print ','.join([str(s) for s in scores])
                 f.write(','.join([str(s) for s in scores]))
                 f.write('\n')
 
@@ -89,7 +88,7 @@ class Player:
         for list_node in list_nodes:
             season_url = url + list_node.a['href']
             season_name = season_url.split('/')[-2]
-            season_filename = self.input_dir + season_name + '.html'
+            season_filename = self.input_dir + self.player_name + '_' + season_name + '.html'
 
             contents = None
             if not os.path.isfile(season_filename):
