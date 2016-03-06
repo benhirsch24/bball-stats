@@ -16,6 +16,8 @@ class Player:
         self.mean       = 0
         self.above      = 0
         self.below      = 0
+        self.cent_above = 0
+        self.cent_below = 0
         self.total      = 0
 
         self.player_name = player_page[:-5].split('/')[-1]
@@ -116,9 +118,11 @@ class Player:
         nscores = numpy.array(self.scores)
         self.stddev = nscores.std()
         self.mean = nscores.mean()
+        self.total = nscores.size
         self.above = nscores[nscores > (self.mean + self.stddev)].size
         self.below = nscores[nscores < (self.mean - self.stddev)].size
-        self.total = nscores.size
+        self.cent_above = float(self.above) / self.total
+        self.cent_below = float(self.below) / self.total
 
     def parse_season_table(self, logs):
         def not_dnp(idee):
