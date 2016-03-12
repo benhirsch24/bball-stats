@@ -5,6 +5,46 @@ import os
 import csv
 import numpy
 
+def nba_aba_top_50_parser(html):
+    bs = BeautifulSoup(html, "html.parser")
+    nba_aba_table = bs.find(id='page_content').table.tr.contents[1].div.table
+    for row in nba_aba_table.find_all('tr'):
+        if row.th:
+            continue
+
+        url = 'http://www.basketball-reference.com/' + row.find_all('td')[1].a['href']
+        yield url
+
+def player_file_list_parser(fi):
+    with open(fi, 'r') as f:
+        for player_file in f:
+            if player_file[-1] == '\n':
+                yield player_file[:-1]
+            else:
+                yield player_file
+
+def player_file_iterator(uri):
+    if uri.startswith('http://'):
+        pieces = uri.split('/')
+        print pieces[-1]
+        if os.path.isfile(pieces[-1]):
+            with open(pieces[-1], 'r') as f:
+                for player_file in f:
+                    if player_file[-1] == '\n':
+                        yield player_file[:-1]
+                    else:
+                        yield player_file
+        else:
+            with open(pieces[-1], 'w') as f:
+                html = urllib2.urlopen(uri).read()
+                for url in nba_aba_top_50_parser(html):
+                    f.write(url)
+                    f.write('\n')
+                    yield url
+    else:
+        for fi in player_file_list_parser(uri):
+            yield fi
+
 class Player:
     def __init__(self, player_page, input_dir='', output_dir=''):
         self.seasons    = collections.OrderedDict()
@@ -67,9 +107,16 @@ class Player:
             reader = csv.reader(f, delimiter=',')
             self.name = reader.next()[0]
             for row in reader:
-                scores = [int(c) for c in row[1:]]
-                self.seasons[int(row[0])] = (scores, sum(scores))
-                self.scores += scores
+                if row[0] == 'aba':
+                    continue
+
+                if row[1] != '':
+                    scores = [int(c) for c in row[1:]]
+                    if self.name == 'Tracy McGrady':
+                        print 'TMac'
+                    if len(scores) > 0:
+                        self.seasons[int(row[0])] = (scores, sum(scores))
+                        self.scores += scores
 
     def parse_player_page(self, soup):
         def game_logs_filter(tag):
@@ -88,13 +135,19 @@ class Player:
         list_nodes = tag.ul.find_all('li')
         url = 'http://www.basketball-reference.com'
         for list_node in list_nodes:
+            if list_node.a is None:
+                continue
+
             season_url = url + list_node.a['href']
             season_name = season_url.split('/')[-2]
             season_filename = self.input_dir + self.player_name + '_' + season_name + '.html'
+            if season_filename == self.input_dir + 'mitchmi01_1990.html':
+                continue
 
             contents = None
             if not os.path.isfile(season_filename):
                 with open(season_filename, 'w') as f:
+                    print 'Pulling ' + season_url
                     contents = urllib2.urlopen(season_url).read()
                     f.write(contents)
 
@@ -115,14 +168,15 @@ class Player:
         self.compute_scores()
 
     def compute_scores(self):
-        nscores = numpy.array(self.scores)
-        self.stddev = nscores.std()
-        self.mean = nscores.mean()
-        self.total = nscores.size
-        self.above = nscores[nscores > (self.mean + self.stddev)].size
-        self.below = nscores[nscores < (self.mean - self.stddev)].size
-        self.cent_above = float(self.above) / self.total
-        self.cent_below = float(self.below) / self.total
+        if len(self.scores) > 0:
+            nscores = numpy.array(self.scores)
+            self.stddev = nscores.std()
+            self.mean = nscores.mean()
+            self.total = nscores.size
+            self.above = nscores[nscores > (self.mean + self.stddev)].size
+            self.below = nscores[nscores < (self.mean - self.stddev)].size
+            self.cent_above = float(self.above) / self.total
+            self.cent_below = float(self.below) / self.total
 
     def parse_season_table(self, logs):
         def not_dnp(idee):
@@ -143,7 +197,11 @@ class Player:
             if 'thead' in tr['class']:
                 continue
             cells = tr.find_all('td')
-            score = int(cells[points_idx].string)
+            points = cells[points_idx].string
+            if points is None:
+                continue
+
+            score = int(points)
             scores.append(score)
             season_score += score
         return (scores, season_score)

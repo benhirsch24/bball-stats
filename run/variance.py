@@ -4,8 +4,6 @@ import sys
 import argparse
 import matplotlib.pyplot as plt
 
-players = []
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Find variance in scoring in a player.')
     parser.add_argument('-p', default='players.txt')
@@ -13,16 +11,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', default='data/')
     args = parser.parse_args()
 
-    with open(args.p, 'r') as f:
-        for player_file in f:
-            if player_file[-1] == '\n':
-                player_file = player_file[:-1]
+    players = []
+    for player_file in pl.player_file_iterator(args.p):
+        try:
+            player = pl.Player(player_file, args.i, args.o)
+        except RuntimeError as e:
+            print e
 
-            try:
-                player = pl.Player(player_file, args.i, args.o)
-            except RuntimeError as e:
-                print e
-
+        if len(player.scores) > 0:
             print player.name
             print 'Std dev: %f, Mean: %f' % (player.stddev, player.mean)
             print 'Num above std dev: %d, num below: %d' % (player.above, player.below)
@@ -41,13 +37,16 @@ if __name__ == '__main__':
     x_mid = (max_x + min_x) / 2
     y_mid = (max_y + min_y) / 2
 
+    centroid_x = sum(x_axis) / len(x_axis)
+    centroid_y = sum(y_axis) / len(y_axis)
+
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
     plt.plot(x_axis, y_axis, 'ro')
     plt.gca().invert_yaxis()
-    for p in players:
-        ax.annotate('%s (%.2f, %.2f)' % (p.name, p.mean, p.stddev), xy = (p.cent_above, p.cent_below))
-    plt.axvline(x_mid)
-    plt.axhspan(y_mid, y_mid)
+#     for p in players:
+#         ax.annotate('%s (%.2f, %.2f)' % (p.name, p.mean, p.stddev), xy = (p.cent_above, p.cent_below))
+    plt.axvline(centroid_x)
+    plt.axhspan(centroid_y, centroid_y)
     plt.show()
